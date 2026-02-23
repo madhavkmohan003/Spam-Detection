@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spamdetector-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: spamdetector
+  template:
+    metadata:
+      labels:
+        app: spamdetector
+    spec:
+      containers:
+        - name: spamdetector-app
+          image: spamdetector:2.0
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5000
+          env:
+            - name: USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: spam-secret
+                  key: username
+            - name: PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: spam-secret
+                  key: password
+
+        - name: logger-container
+          image: busybox
+          command: ["sh", "-c", "while true; do echo Logging spam app; sleep 5; done"]
+
+        - name: helper-container
+          image: busybox
+          command: ["sh", "-c", "while true; do echo Helper container running; sleep 7; done"]
