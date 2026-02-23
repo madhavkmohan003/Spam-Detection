@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login | CleanInbox</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: var(--bg-body);
+        }
+
+        .login-card {
+            background: var(--bg-card);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .login-header {
+            margin-bottom: 30px;
+        }
+
+        .login-header i {
+            font-size: 48px;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 16px;
+            background: var(--bg-body);
+            color: var(--text-main);
+        }
+
+        .btn-login {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            width: 100%;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-login:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .error-msg {
+            color: var(--danger-color);
+            background-color: #FEF2F2;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-card">
+        <div class="login-header">
+            <i class="fas fa-shield-alt"></i>
+            <h2>Admin Login</h2>
+            <p style="color: var(--text-muted);">Enter your credentials to access the dashboard.</p>
+        </div>
+
+        {% if error %}
+        <div class="error-msg">
+            <i class="fas fa-exclamation-circle"></i> {{ error }}
+        </div>
+        {% endif %}
+
+        <form action="/login" method="post">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="username" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" required>
+            </div>
+            <button type="submit" class="btn-login">Login</button>
+        </form>
+        <p style="margin-top: 20px; font-size: 14px;">
+            <a href="/" style="color: var(--text-muted); text-decoration: none;">&larr; Back to App</a>
+        </p>
+    </div>
+</body>
+
+</html>

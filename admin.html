@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | CleanInbox</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="admin-body">
+
+    <div class="sidebar">
+        <div class="logo">
+            <i class="fas fa-user-shield"></i>
+            <span>AdminPanel</span>
+        </div>
+        <nav>
+            <a href="/" class="nav-btn">
+                <i class="fas fa-arrow-left"></i> Back to App
+            </a>
+            <div class="nav-divider"></div>
+            <button class="nav-btn active">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </button>
+        </nav>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <h1>System Overview</h1>
+            <p>Monitor performance and retrain the model.</p>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon blue"><i class="fas fa-inbox"></i></div>
+                <div class="stat-info">
+                    <h3>{{ total }}</h3>
+                    <p>Total Processed</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon red"><i class="fas fa-bug"></i></div>
+                <div class="stat-info">
+                    <h3>{{ spam_count }}</h3>
+                    <p>Spam Identified</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon green"><i class="fas fa-check"></i></div>
+                <div class="stat-info">
+                    <h3>{{ ham_count }}</h3>
+                    <p>Legitimate Messages</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="flex-header">
+                <h2><i class="fas fa-graduation-cap"></i> Training Queue</h2>
+                <span class="badge">Recent Feedback</span>
+            </div>
+            <p class="subtitle">Review user feedback and confirm labels to improve accuracy.</p>
+
+            {% if feedback %}
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Message</th>
+                            <th>User Flagged As</th>
+                            <th>Admin Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in feedback %}
+                        <tr>
+                            <td class="message-cell" title="{{ item.message }}">{{ item.message[:60] }}...</td>
+                            <td>
+                                <span
+                                    class="status-badge {{ 'status-spam' if item.user_label == 'SPAM' else 'status-ham' }}">
+                                    {{ item.user_label }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="action-buttons-row">
+                                    <form action="/admin/train" method="post">
+                                        <input type="hidden" name="message" value="{{ item.message }}">
+                                        <input type="hidden" name="label" value="SPAM">
+                                        <button class="btn-warning btn-sm" title="Confirm as Spam">
+                                            <i class="fas fa-check"></i> Confirm Spam
+                                        </button>
+                                    </form>
+                                    <form action="/admin/train" method="post">
+                                        <input type="hidden" name="message" value="{{ item.message }}">
+                                        <input type="hidden" name="label" value="NOT SPAM">
+                                        <button class="btn-success btn-sm" title="Confirm as Safe">
+                                            <i class="fas fa-check"></i> Confirm Safe
+                                        </button>
+                                    </form>
+                                    <!-- Delete Feedback Button -->
+                                    <form action="/admin/delete_feedback/{{ item.id }}" method="post"
+                                        style="margin-left: 5px;">
+                                        <button class="btn-icon delete-btn" title="Dismiss"><i
+                                                class="fas fa-times"></i></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-check-double"></i>
+                <p>All caught up! No recent messages.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</body>
+
+</html>

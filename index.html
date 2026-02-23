@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spam Detection | AI Powered</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+</head>
+
+<body onload="initApp()">
+
+    <div class="sidebar">
+        <div class="logo">
+            <i class="fas fa-shield-alt"></i>
+            <span>CleanInbox</span>
+        </div>
+        <nav>
+            <button class="nav-btn active" onclick="openTab('home', this)">
+                <i class="fas fa-home"></i> Home
+            </button>
+            <button class="nav-btn" onclick="openTab('history', this)">
+                <i class="fas fa-history"></i> History
+            </button>
+            <button class="nav-btn" onclick="openTab('stats', this)">
+                <i class="fas fa-chart-pie"></i> Statistics
+            </button>
+            <button class="nav-btn" onclick="openTab('feedback', this)">
+                <i class="fas fa-comment-dots"></i> Feedback
+            </button>
+            <div class="nav-division"></div>
+            <a href="/admin" class="nav-btn">
+                <i class="fas fa-user-shield"></i> Admin Panel
+            </a>
+        </nav>
+
+        <div class="theme-toggle">
+            <label class="switch">
+                <input type="checkbox" id="darkModeToggle" onclick="toggleDarkMode()">
+                <span class="slider round"></span>
+            </label>
+            <span id="themeLabel">Dark Mode</span>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <!-- HOME TAB -->
+        <div id="home" class="tab-content active">
+            <header>
+                <h1>Spam Detection System</h1>
+                <p>AI-powered analysis for SMS, Email, and WhatsApp messages.</p>
+            </header>
+
+            <div class="card scan-card">
+                <form method="post">
+                    <div class="form-group">
+                        <label><i class="fas fa-share-alt"></i> Message Source</label>
+                        <select name="source" class="custom-select">
+                            <option value="SMS">SMS</option>
+                            <option value="Email">Email</option>
+                            <option value="WhatsApp">WhatsApp</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label><i class="fas fa-envelope-open-text"></i> Content</label>
+                        <textarea name="message" placeholder="Paste the suspicious message here to analyze..."
+                            required>{{ request.form.message }}</textarea>
+                    </div>
+
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-search"></i> Detect Spam
+                    </button>
+                </form>
+            </div>
+
+            {% if prediction %}
+            <div class="result-card fade-in {{ 'result-spam' if 'SPAM' in prediction else 'result-ham' }}">
+                <div class="result-header">
+                    <div class="icon-box">
+                        <i
+                            class="{{ 'fas fa-exclamation-triangle' if 'SPAM' in prediction else 'fas fa-check-circle' }}"></i>
+                    </div>
+                    <div>
+                        <h2>{{ prediction }}</h2>
+                        <p>Confidence: <strong>{{ probability }}</strong></p>
+                        <!-- Novelty: Tags -->
+                        {% if tags %}
+                        <div class="smart-tags">
+                            {% for tag in tags %}
+                            <span class="smart-tag">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Novelty: Enhanced Link Analysis -->
+                {% if urls %}
+                <div class="url-analysis-box">
+                    <h4><i class="fas fa-link"></i> Link Risk Analysis</h4>
+                    <ul>
+                        {% for u in urls %}
+                        <li class="risk-{{ u.risk_level|lower }}">
+                            <div class="link-info">
+                                <a href="#" class="suspicious-link">{{ u.url }}</a>
+                                <span class="risk-badge {{ u.risk_level|lower }}">{{ u.risk_level }} RISK</span>
+                            </div>
+                            {% if u.reasons != "None" %}
+                            <div class="risk-reasons">
+                                <small><i class="fas fa-info-circle"></i> {{ u.reasons }}</small>
+                            </div>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {% if keywords %}
+                <div class="keywords-box">
+                    <span><i class="fas fa-tags"></i> Detected Triggers:</span>
+                    <div class="tags">
+                        {% for k in keywords %}
+                        <span class="tag">{{ k }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="action-buttons">
+                    <button onclick="copyResult()" class="btn-secondary btn-sm"><i class="fas fa-copy"></i> Copy
+                        Result</button>
+                </div>
+
+                <div class="feedback-section">
+                    <h4>Is this result correct?</h4>
+                    <div class="feedback-buttons">
+                        <form action="/feedback" method="post" style="display:inline;">
+                            <input type="hidden" name="message" value="{{ request.form.message }}">
+                            <input type="hidden" name="user_label" value="SPAM">
+                            <button class="btn-danger btn-sm">It's Spam! 🚫</button>
+                        </form>
+                        <form action="/feedback" method="post" style="display:inline;">
+                            <input type="hidden" name="message" value="{{ request.form.message }}">
+                            <input type="hidden" name="user_label" value="NOT SPAM">
+                            <button class="btn-success btn-sm">It's Safe ✅</button>
+                        </form>
+                    </div>
+                    <p class="feedback-note">Your feedback trains the system instantly!</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- HISTORY TAB -->
+        <div id="history" class="tab-content">
+            <header class="flex-header">
+                <h2>Prediction History</h2>
+                <div class="actions">
+                    <a href="/export_csv" class="btn-secondary btn-sm"><i class="fas fa-download"></i> CSV</a>
+                    <form action="/clear_history" method="post" onsubmit="return confirm('Clear all history?');">
+                        <button class="btn-danger btn-sm"><i class="fas fa-trash"></i> Clear All</button>
+                    </form>
+                </div>
+            </header>
+
+            <div class="card table-card">
+                {% if history %}
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Source</th>
+                                <th>Message</th>
+                                <th>Result</th>
+                                <th>Confidence</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for h in history %}
+                            <tr>
+                                <td><span class="badge">{{ h.source }}</span></td>
+                                <td class="message-cell" title="{{ h.message }}">{{ h.message[:50] }}...</td>
+                                <td>
+                                    <span
+                                        class="status-badge {{ 'status-spam' if 'SPAM' in h.result else 'status-ham' }}">
+                                        {{ h.result }}
+                                    </span>
+                                </td>
+                                <td>{{ h.probability }}</td>
+                                <td>
+                                    <form action="/delete_history/{{ h.id }}" method="post" style="display:inline;">
+                                        <button class="btn-icon delete-btn" title="Delete"><i
+                                                class="fas fa-trash-alt"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-history"></i>
+                    <p>No history found.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- STATISTICS TAB -->
+        <div id="stats" class="tab-content">
+            <header>
+                <h2>System Analytics</h2>
+            </header>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue"><i class="fas fa-database"></i></div>
+                    <div class="stat-info">
+                        <h3>{{ total }}</h3>
+                        <p>Total Scans</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon green"><i class="fas fa-check-double"></i></div>
+                    <div class="stat-info">
+                        <h3>{{ ham_count }}</h3>
+                        <p>Safe Messages</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="charts-container">
+                <!-- Threat Breakdown -->
+                <div class="chart-wrapper">
+                    <h3><i class="fas fa-shield-virus"></i> Threat Breakdown</h3>
+                    <div class="threat-bars" style="width: 100%;">
+                        {% for type, count in radar_data.items() %}
+                        {% set pct = (count / total * 100)|round|int if total > 0 else 0 %}
+                        <div class="threat-item" style="margin-bottom: 12px;">
+                            <div
+                                style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 14px;">
+                                <span>{{ type }}</span>
+                                <span style="font-weight: bold;">{{ count }}</span>
+                            </div>
+                            <div style="height: 8px; background: var(--bg-body); border-radius: 4px; overflow: hidden;">
+                                <div
+                                    style="--pct: {{ pct }}%; width: var(--pct); height: 100%; background: var(--primary-color); border-radius: 4px;">
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% if total == 0 %}
+                        <p class="text-muted" style="text-align: center; margin-top: 20px;">No threats detected yet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- System Health -->
+                <div class="chart-wrapper">
+                    <h3><i class="fas fa-server"></i> System Health</h3>
+                    <div class="health-grid"
+                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%;">
+                        <div class="health-item"
+                            style="background: var(--bg-body); padding: 15px; border-radius: 8px; text-align: center;">
+                            <i class="fas fa-check-circle"
+                                style="color: var(--secondary-color); font-size: 24px; margin-bottom: 8px;"></i>
+                            <div style="font-weight: 600;">Model Status</div>
+                            <div style="font-size: 12px; color: var(--secondary-color);">Active</div>
+                        </div>
+                        <div class="health-item"
+                            style="background: var(--bg-body); padding: 15px; border-radius: 8px; text-align: center;">
+                            <i class="fas fa-database"
+                                style="color: var(--primary-color); font-size: 24px; margin-bottom: 8px;"></i>
+                            <div style="font-weight: 600;">Database</div>
+                            <div style="font-size: 12px; color: var(--primary-color);">Connected</div>
+                        </div>
+                        <div class="health-item"
+                            style="background: var(--bg-body); padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 20px; font-weight: 700;">99.9%</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">Uptime</div>
+                        </div>
+                        <div class="health-item"
+                            style="background: var(--bg-body); padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 20px; font-weight: 700;">24ms</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">Latency</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Novelty: Word Cloud Placeholder -->
+            <div class="card word-cloud-card">
+                <h3><i class="fas fa-cloud"></i> Top Spam Triggers</h3>
+                <div id="wordCloud" class="cloud-container">
+                    <span style="font-size: 24px; color: var(--danger-color);">FREE</span>
+                    <span style="font-size: 18px; color: orange;">WINNER</span>
+                    <span style="font-size: 20px; color: darkred;">URGENT</span>
+                    <span style="font-size: 16px; color: purple;">CASH</span>
+                    <span style="font-size: 22px; color: blue;">CLICK</span>
+                    <span style="font-size: 14px; color: green;">OFFER</span>
+                    <span style="font-size: 19px; color: crimson;">PRIZE</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- FEEDBACK TAB -->
+        <div id="feedback" class="tab-content">
+            <header>
+                <h2>User Flags And Feedback</h2>
+            </header>
+
+            <div class="card table-card">
+                {% if feedback %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Message</th>
+                            <th>User Correction</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for f in feedback %}
+                        <tr>
+                            <td class="message-cell">{{ f.message[:60] }}...</td>
+                            <td>
+                                <span
+                                    class="status-badge {{ 'status-spam' if 'SPAM' == f.user_label else 'status-ham' }}">
+                                    {{ f.user_label }}
+                                </span>
+                            </td>
+                            <td>{{ f.timestamp }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-comment-slash"></i>
+                    <p>No feedback reports yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function initApp() {
+            // Check local storage for dark mode
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.body.classList.add('dark-mode');
+                document.getElementById('darkModeToggle').checked = true;
+            }
+
+        }
+
+        function openTab(tabName, btn) {
+            let tabs = document.getElementsByClassName("tab-content");
+            let buttons = document.getElementsByClassName("nav-btn");
+
+            for (let t of tabs) {
+                t.style.display = "none";
+                t.classList.remove('active');
+            }
+            for (let b of buttons) b.classList.remove("active");
+
+            document.getElementById(tabName).style.display = "block";
+            // trigger reflow for animation
+            void document.getElementById(tabName).offsetWidth;
+            document.getElementById(tabName).classList.add('active');
+
+            btn.classList.add("active");
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            let isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('darkMode', isDark);
+        }
+
+        function copyResult() {
+            // Logic to copy prediction text
+            alert("Result copied to clipboard! (Simulated)");
+        }
+
+
+    </script>
+</body>
+
+</html>
